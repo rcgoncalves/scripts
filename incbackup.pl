@@ -1,0 +1,345 @@
+#!/usr/bin/perl
+# ==============================================================================
+# 
+# incbackup 1.2.1 - create incremental backups
+# Copyright (C) 2008, 2009 Rui Carlos Gonçalves
+# 
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+# 
+# ==============================================================================
+# 
+# Author:       Rui Carlos Gonçalves <rcgoncalves.pt@gmail.com>
+# Version:      1.2.1
+# Date:         May 17, 2009
+# 
+# ==============================================================================
+# 
+# Change Log
+#
+# Version 1.2.1
+#   2009-05-17
+#     * Added some comments to source code.
+#
+# Version 1.2
+#   2008-08-29
+#     * Link to latest backup is now created after each directory backup.
+#
+# Version 1.1
+#   2008-08-28
+#     * Added '-e' option, to specify a file with exclude patterns.
+#     * Remove directories using system+rm instead of rmtree.
+#
+# Version 1.0
+#   2008-08-26
+#     * Added support to backup multiple folders.
+#
+#   2008-08-24
+#     * Added '-d' option, to remove old backups.
+#     * Added documentation.
+#
+# Version 0.1
+#   2008-08-23
+#     * First version.
+# 
+# ==============================================================================
+
+use strict;
+use warnings;
+
+use utf8;
+
+use Getopt::Std;
+use POSIX;
+use Time::Local;
+
+$Getopt::Std::STANDARD_HELP_VERSION = 1;
+
+# ==============================================================================
+
+sub main::VERSION_MESSAGE {
+  print "incbackup 1.2.1, Copyright (C) 2008, 2009 Rui Carlos Goncalves\n";
+  print "incbackup comes with ABSOLUTELY NO WARRANTY.  This is free software, and\n";
+  print "you are welcome to redistribute it under certain conditions.  See the GNU\n";
+  print "General Public Licence for details.\n\n";
+}
+
+sub main::HELP_MESSAGE {
+  print "Create incremental backups\n";
+  print "\n";
+  print "Usage:\n";
+  print "  incbackup [-v] [-l logfile] [-d] [-e file] source_directory [...] target_directory\n";
+  print "\n";
+  print "Options:\n";
+  print "  -v  verbose mode\n";
+  print "  -l  log file location (default: \$HOME/.incbackup.log)\n";
+  print "  -d  delete old backups\n";
+  print "  -e  read exclude patterns from file\n";
+}
+
+# ==============================================================================
+# processing options and arguments
+
+my $daily = 30;
+my $interval = 7;
+
+my %options = (
+  'l' => "$ENV{'HOME'}/.incbackup.log",
+  'e' => '',
+  'd' => 0,
+  'v' => 0
+);
+
+getopts('l:e:vd', \%options);
+
+my $verb = $options{'v'};
+my $del = $options{'d'};
+my $logfile = $options{'l'};
+my $exclude ='';
+$exclude = " --exclude-from=$options{'e'} " if $options{'e'} ne '';
+
+my $log = 1;
+open LOGFILE, ">>$logfile" or $log = 0;
+warn "incbackup: Cannot open log file.\n" if !$log;
+
+die "incbackup: No source and/or destination specified.\n" if $#ARGV < 1;
+foreach my $dir (@ARGV) {
+  die "incbackup: $dir: No such directory.\n" unless -d $dir;
+}
+
+my $dstdir = pop @ARGV;
+my $date = localtime();
+
+# ==============================================================================
+# backing up data
+
+foreach my $srcdir (@ARGV) {
+  print LOGFILE localtime() . " incbackup: Backing Up '$srcdir'.\n" if $log;
+  print "Backing Up '$srcdir'...\n" if $verb;
+
+  my $new = backup($srcdir, $dstdir, $exclude);
+
+  next if $new eq '';
+
+  print LOGFILE localtime() . " incbackup: Finishing Backup of '$srcdir'.\n" if $log;
+  print "Finishing Backup of '$srcdir'...\n" if $verb;
+
+  linklatest($srcdir, $dstdir, $new);
+}
+
+if($del) {
+  print LOGFILE localtime() . " incbackup: Removing old backups.\n" if $log;
+  print "Removing old backups...\n" if $verb;
+
+  foreach my $srcdir (@ARGV) {
+    clean($srcdir, $dstdir);
+  }
+}
+
+print LOGFILE localtime() . " incbackup: Done.\n" if $log;
+print "Done.\n" if $verb;
+
+# ==============================================================================
+
+# creates a backup from a folder
+sub backup {
+  my $srcdir = shift;
+  my $dstdir = shift;
+  my $exclude = shift;
+  my $srcname = basename($srcdir);
+  $srcname = "" if $srcname eq '/';
+
+  my $new = $srcname . "-" . ((localtime)[5] + 1900) . strftime("%m%d-%H%M%S", localtime);
+  my $cmd;
+
+  if (-e "$dstdir/$srcname-latest") {
+    my $latest = readlink "$dstdir/$srcname-latest" or (warn "incbackup: Error reading '$dstdir/$srcname-latest'.\n" and return '');
+    $cmd = "rsync -a --delete $exclude --link-dest=\"$latest\" \"$srcdir/\" \"$dstdir/$new\"";
+  }
+  else {
+    $cmd = "rsync -a $exclude \"$srcdir/\" \"$dstdir/$new\"";
+  }
+
+  !system $cmd or (warn "incbackup: Error executing rsync.\n" and return '');
+
+  return $new;
+}
+
+# creates a symbolic link to the latest backup
+sub linklatest {
+  my $srcdir = shift;
+  my $dstdir = shift;
+  my $new = shift;
+  my $srcname = basename($srcdir);
+  $srcname = "" if $srcname eq '/';
+
+  unlink "$dstdir/$srcname-latest" or (warn "incbackup: Error removing previous link.\n" and return) if -e "$dstdir/$srcname-latest";
+
+  symlink "$dstdir/$new", "$dstdir/$srcname-latest" or warn "incbackup: Error creating symbolic link to the latest backup.\n";
+}
+
+# deletes old backups
+sub clean {
+  my $interval_ = $interval * 86400;
+  my $limit1 = time - $daily * 86400;
+  my $limit2 = time - 86400;
+
+  my $srcdir = shift;
+  my $name = basename($srcdir);
+  $name = "" if $name eq '/';
+  my $base = shift;
+  my $regexp = "$name-(\\d\\d\\d\\d)(\\d\\d)(\\d\\d)-(\\d\\d)(\\d\\d)(\\d\\d)";
+
+  opendir DIR, $base or (warn "incbackup: Cannot open '$base' to remove old backups.\n" and return);
+
+  my @files = grep { 
+    /^$name/
+    && -d "$base/$_"
+  } readdir(DIR) or (warn "incbackup: Cannot read '$base'.\n" and return);
+
+  closedir DIR;
+
+  @files = sort @files;
+  pop @files;
+
+  my $file = $files[0];
+  $file =~ $regexp;
+  my $aux = timelocal(0, 0, 0, $3, $2 -1 , $1 - 1900);
+
+  while ($#files > -1) {
+    $file = shift @files;
+    $file =~ $regexp;
+    my $this = timelocal(0, 0, 0, $3, $2 - 1, $1 - 1900);
+
+    last if $this >= $limit1;
+
+    if ($this >= $aux) {
+      $aux = $this + $interval_;
+    }
+    else {
+      !system "rm -rf \"$base/$file\"" or warn "incbackup: Error removing '$base/$file'.\n";
+    }
+  }
+
+  return if $#files == -1;
+
+  unshift @files, $file;
+  $file =~ $regexp;
+  $aux = timelocal(0, 0, 0, $3, $2 - 1, $1 - 1900);
+
+  while ($#files > -1) {
+    $file = shift @files;
+    $file =~ $regexp;
+    my $this = timelocal($6, $5, $4, $3, $2 - 1, $1 - 1900);
+
+    last if $this >= $limit2;
+
+    if ($this >= $aux) {
+      $aux = timelocal(0, 0, 0, $3, $2 - 1, $1 - 1900) + 86400;
+    }
+    else {
+      !system "rm -rf \"$base/$file\"" or warn "incbackup: Error removing '$base/$file'.\n";
+    }
+  }
+}
+
+# deletes any prefix ending with the last slash `/' character present in a given
+#   path/string (similar to bash `basename' function).
+sub basename {
+  my $path = shift;
+
+  $path =~ s/(\/)+/\//g;
+
+  if ($path eq '/') {
+    return $path;
+  }
+  else {
+    $path =~ s/(.*)\/$/$1/;
+    $path =~ s/^.*?([^\/]*)$/$1/;
+
+    return $path;
+  }
+}
+
+
+__DATA__
+
+=head1 NAME
+
+B<incbackup> - create incremental backups.
+
+
+=head1 SYNOPSYS
+
+B<incbackup> [B<-v>] [B<-l> F<logfile>] [B<-d>] [B<-e> F<file>] F<source_directory> F<...> F<target_directory>
+
+
+=head1 DESCRIPTION
+
+B<incbackup> create incremental backups of each F<source_directory> using B<rsync>.
+At each backup, only new files are copied.
+The backups will be stored in F<target_directory>, and you shouldn't use the
+same directory to backup different directories with the same name.
+
+The option B<-d> can be used to delete old backups. This will only keep all backups
+for the past 24 hours, daily backups for the past 30 days, and weekly backups when
+oldest than 30 days.
+
+The file system where backups are stored must support symbolic links.
+
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-v>
+
+Verbose mode.
+
+=item B<-l> F<logfile>
+
+Specify log file (default: $HOME/.incbackup.log)
+
+=item B<-d>
+
+Delete old backups.
+
+=item B<-e> F<file>
+
+Read exclude patterns from F<file>.
+
+=item B<--version>
+
+Show version information and exit.
+
+=item B<--help>
+
+Show usage information and exit.
+
+=back
+
+
+=head1 AUTHOR
+
+Rui Carlos Goncalves <rcgoncalves.pt@gmail.com>
+
+http://rcgoncalves.pt
+
+
+=head1 SEE ALSO
+
+L<rsync>(1)
+
+
+=cut
