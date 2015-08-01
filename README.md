@@ -8,7 +8,7 @@ This scripts are licensed under GNU General Public License version 2.
 ## List of Scripts
 * `get-backups.sh`
 
-  Downloads backups archives from a remote machine, and stores those files in a local folder.
+  Downloads backup archives from a remote machine, and stores those files in a local folder.
 
   It is prepared to preserve multiple versions of the backup files.  Thus, the local folder where the backups are store contains date information in its name.
 
