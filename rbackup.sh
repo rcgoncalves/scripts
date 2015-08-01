@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # 
-# rbackup 1.0.1 - create and maintain folder backups
+# rbackup 1.1 - create and maintain folder backups
 # Copyright (C) 2013, 2015 Rui Carlos Gonçalves
 # 
 # This program is free software; you can redistribute it and/or
