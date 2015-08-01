@@ -37,7 +37,7 @@
 # "backup-m-<YEAR>-<MONTH>".  The first backups downloaded in a week are saved
 # in a folder with name format "backup-w-<YEAR>-<WEEK>".  The remaining backups
 # are saved in a folder with name format "backup-d-<YEAR>-<MONTH>-<DAY>" (which
-# at most one backup is saved per day).
+# means at most one backup is saved per day).
 # It also deletes the old backup files after a configurable period of time.
 # This period of time can be different for monthly, weekly and daily backups.
 #
