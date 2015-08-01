@@ -2,7 +2,7 @@
 # ==============================================================================
 #
 # rtar 2.1.3 - create tar archives
-# Copyright (C) 2008, 2009 Rui Carlos Gonçalves
+# Copyright (C) 2008, 2009, 2013 Rui Carlos Gonçalves
 # 
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -27,6 +27,10 @@
 # ==============================================================================
 #
 # Change Log
+#
+# Version 2.1.3
+#   2013-07-20
+#     * Minor changes.
 #
 # Version 2.1.2
 #   2009-05-17
@@ -53,7 +57,7 @@ use POSIX;
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
 
 sub main::VERSION_MESSAGE {
-  print "rtar version 2.1.3, Copyright (C) 2008, 2009 Rui Carlos Goncalves\n";
+  print "rtar version 2.1.3, Copyright (C) 2008, 2009, 2013 Rui Carlos Goncalves\n";
   print "rtar comes with ABSOLUTELY NO WARRANTY.  This is free software, and\n";
   print "you are welcome to redistribute it under certain conditions.  See the GNU\n";
   print "General Public Licence for details.\n\n";
