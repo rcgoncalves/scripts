@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # 
-# rcrypt 1.0 - encrypt files
+# rcrypt 1.0.1 - encrypt files
 # Copyright (C) 2015 Rui Carlos Gonçalves
 # 
 # This program is free software; you can redistribute it and/or
@@ -21,8 +21,8 @@
 # ==============================================================================
 #
 # Author:	Rui Carlos Gonçalves <rcgoncalves.pt@gmail.com>
-# Version:	1.0
-# Date:		August 1, 2015
+# Version:	1.0.1
+# Date:		October 18, 2015
 #
 # ==============================================================================
 #
@@ -37,6 +37,9 @@
 #
 # Change Log
 #
+# Version 1.0.1
+#   2015-10-18
+#     * Fix bug in help message
 # Version 1.0
 #   2015-08-01
 #     * First version.
@@ -52,7 +55,7 @@ then
     echo "General Public Licence for details."
     echo ""
     echo "Encrypt/decrypt files."
-    echo "Usage: rcrypt (END|DEC) input-file [output-file]"
+    echo "Usage: rcrypt (ENC|DEC) input-file [output-file]"
     exit 0
 fi
 
