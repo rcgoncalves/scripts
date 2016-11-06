@@ -49,7 +49,7 @@
 # if no arguments are provided, print help message and exit
 if [ "$#" == "0" ]
 then
-    echo "rcrypt 1.0, Copyright (C) 2015 Rui Carlos Goncalves"
+    echo "rcrypt 1.0.1, Copyright (C) 2015 Rui Carlos Goncalves"
     echo "rcrypt comes with ABSOLUTELY NO WARRANTY.  This is free software, and"
     echo "you are welcome to redistribute it under certain conditions.  See the GNU"
     echo "General Public Licence for details."
