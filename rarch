@@ -1,0 +1,201 @@
+#!/bin/bash
+# ==================================================================================================
+# 
+# rarch 2.0 - create encrypted TAR archives from directories
+# Copyright (C) 2017 Rui Carlos Gonçalves
+# 
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+#
+# ==================================================================================================
+#
+# Author:       Rui Carlos Gonçalves <rcgoncalves.pt@gmail.com>
+# Version:      2.0
+# Date:         August 26, 2017
+#
+# ==================================================================================================
+#
+# ABOUT THIS SCRIPT:
+#
+# Creates encrypted TAR archives from directories, using GnuPG public key encryption.
+#
+# ==================================================================================================
+#
+# Change Log
+#
+# Version 2.0
+#   2017-08-26
+#     * Change script to use TAR and GnuPG instead of hdiutil.
+#     * Make use of date in file name optional.
+#     * Improve robustness of the script.
+# Version 1.0
+#   2015-08-01
+#     * First version.
+#
+# ==================================================================================================
+
+set -u
+
+# Returns the absolute path of a given directory path
+get_absolute_path() {
+    if [[ -d "$1" ]]; then
+        echo "$(cd "$1" && pwd)"
+        return 0
+    else
+        return 1
+    fi
+}
+
+# ==================================================================================================
+
+readonly NAME='rarch'
+readonly VERSION='2.0'
+readonly YEAR='2017'
+
+print_version() {
+    echo -e "$NAME $VERSION, Copyright (C) $YEAR Rui Carlos Goncalves"
+}
+
+print_help() {
+    print_version
+    echo "Create encrypted TAR archives from directories using GnuPG, with a public key"
+    echo "specified.  An output file is created for each input directory. Optionally it"
+    echo "can append the current date to the created TAR archive, so that the archive"
+    echo "creation date can be known after decrypting the file."
+    echo ""
+    echo "Usage:"
+    echo "    $NAME [options] [directories]"
+    echo ""
+    echo "Options:"
+    echo "    -k USER-ID user ID of the GnuPG public key for encrypting the archive"
+    echo "    -d         append current date to TAR archive (format YYYYMMDD)"
+    echo "    -v         print the program version and exit"
+    echo "    -h         print this help message and exit"
+    echo ""
+    echo ""
+    echo "$NAME comes with ABSOLUTELY NO WARRANTY.  This is free software, and"
+    echo "you are welcome to redistribute it under certain conditions.  See the GNU"
+    echo "General Public Licence for details."
+}
+
+# ==================================================================================================
+
+DIR=''
+DATE=''
+KEY=''
+while getopts 'k:dvh' FLAG; do
+    case "$FLAG" in
+        k)
+            KEY="$OPTARG"
+            ;;
+        d)
+            DATE="-$(date +'%Y%m%d')"
+            ;;
+        v)
+            print_version
+            exit 0
+            ;;
+        h)
+            print_help
+            exit 0
+            ;;
+        \?)
+            echo ""
+            print_help
+            exit 1
+            ;;
+    esac
+done
+readonly DIR
+readonly DATE
+readonly KEY
+
+shift $((OPTIND-1))
+if [[ "$#" -eq 0 ]]; then
+    echo "$NAME: no input directories specified" >&2
+    echo ""
+    print_help
+    exit 1
+fi
+
+if ! hash gpg; then
+    echo "$NAME: 'gpg' not available (required)" >&2
+    exit 1
+fi
+if ! hash base64; then
+    echo "$NAME: 'base64' not available (required)" >&2
+    exit 1
+fi
+
+
+error=0
+
+readonly CURR_PATH="$(pwd)"
+# define a random temporary path in current working directory
+# it will be used to place the temporary TAR archives
+readonly TMP_PATH="$CURR_PATH/TMP.$(date | gpg --print-md MD5 | tr -s ' ' | base64)"
+# stores the latest used path used for temporary TAR archive (the one we still may have to delete)
+tar_path=''
+# setup a trap to cleanup temporary files
+cleanup() {
+    [[ "$(dirname "$tar_path")" == "$TMP_PATH" ]] && [[ -f "$tar_path" ]] && rm "$tar_path"
+    [[ -d "$TMP_PATH" ]] && rmdir "$TMP_PATH"
+}
+trap cleanup EXIT SIGINT SIGTERM SIGQUIT
+# assumes the current directory is valid
+mkdir $TMP_PATH >/dev/null 2>&1
+if [[ "$?" -ne 0 ]]; then
+    echo "$NAME: error creating archives" >&2
+    exit 1
+fi
+
+
+for dir in "$@"; do
+    if [[ "$dir" == "/" ]]; then
+        echo "$NAME: cannot process the root directory (skipping directory)." >&2
+        let error++
+    elif [ ! -d "$dir" ]; then
+        echo "$NAME: '$dir' is not a valid directory (skipping directory)." >&2
+        let error++
+    else
+        abs_path="$(get_absolute_path "$dir")"
+        base_name="$(basename "$abs_path")"
+        dir_name="$(dirname "$abs_path")"
+        tar_path="$TMP_PATH/$base_name$DATE.tar"
+        gpg_path="$CURR_PATH/$base_name.gpg"
+
+        if [[ -e "$gpg_path" ]]; then
+            echo "$NAME: output file '$gpg_path' already exists (skipping directory)" >&2
+            let error++
+        else
+            tar cf "$tar_path" -C "$dir_name" "$base_name"
+            if [[ "$?" -eq 0 ]]; then
+                if [[ -z "$KEY" ]]; then
+                    gpg --encrypt --out "$gpg_path" $tar_path
+                else
+                    gpg --encrypt -r "$KEY" --out "$gpg_path" $tar_path
+                fi
+                if [[ "$?" -ne 0 ]]; then
+                    echo "$NAME: error encrypting archive" >&2
+                fi
+            else
+                echo "$NAME: error creating archive" >&2
+                let error++
+            fi
+            [[ -f "$tar_path" ]] && rm "$tar_path"
+        fi
+    fi
+done
+
+exit $error
