@@ -6,18 +6,19 @@ This repository contains some Perl and Bash scripts to automate some tasks, main
 This scripts are licensed under GNU General Public License version 2.
 
 ## List of Scripts
-* `get-backups.sh`
+* `get-backups`
 
-  Downloads backup archives from a remote machine, and stores those files in a local folder.
+  Downloads backup archives from a remote machine, and stores those archives in a local folder.
 
-  It is prepared to preserve multiple versions of the backup files.  Thus, the local folder where the backups are store contains date information in its name.
+  It is prepared to preserve multiple versions of the backup files.  Thus, the local folder where the backups are stored contains date information in its name.
 
-  The first backups downloaded in a month are saved in a folder with name format `backup-m-<YEAR>-<MONTH>`.
-  The first backups downloaded in a week are saved in a folder with name format `backup-w-<YEAR>-<WEEK>`.
-  The remaining backups are saved in a folder with name format `backup-d-<YEAR>-<MONTH>-<DAY>` (which means at most one backup is saved per day).
+  The first backups downloaded in a month are saved in a folder with name format `backup-m<YEAR><MONTH>`.
+  The first backups downloaded in a week are saved in a folder with name format `backup-w<YEAR><WEEK>`.
+  The remaining backups are saved in a folder with name format `backup-d<YEAR><MONTH><DAY>` (which means at most one backup is saved per day).
 
   It also deletes the old backup files after a configurable period of time.
-  This period of time can be different for monthly, weekly and daily backups.
+  **Note:** the files to delete are determined according to the modification time provided by the file system.
+  Thus, those timestamps should not be changed after the creation of the backups.
   
 * `incbackup.pl`
 
@@ -36,22 +37,9 @@ This scripts are licensed under GNU General Public License version 2.
   Users can specify the maximum number of days to keep each backup.
   By default, daily backups are deleted after 7 days, weekly backups after 20 days, and monthly backups after 90 days.
 
-* `rarch.sh`
+* `rarch`
   
-  Creates encrypted DMG archives from folders, using `hdiutil` command (available on OS X).
-  Uses the default encryption scheme from `hdiutil`.
-  The password is asked for each folder to encrypt.
- 
-  The output file name is the result of appending the current date to the input folder name.
-
-* `rcrypt.sh`
-
-  Encrypts or decrypts the contents of a given file, using openssl software.
-
-  Uses the AES-256 CBC scheme for encryption and decryption.
-
-  If an output file name is provided, it is used to store the encrypted data.
-  Otherwise the encrypted data is sent to the standard output.
+  Creates encrypted TAR archives from directories, using GnuPG public key encryption.
 
 * `gexport.pl`
 
