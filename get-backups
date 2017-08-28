@@ -1,0 +1,256 @@
+#!/bin/bash
+# ==================================================================================================
+# 
+# get-backups 1.0 - download and maintain versioned backup files
+# Copyright (C) 2015-2017 Rui Carlos Gonçalves
+# 
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+#
+# ==================================================================================================
+#
+# Author:       Rui Carlos Gonçalves <rcgoncalves.pt@gmail.com>
+# Version:      2.0
+# Date:         August 28, 2017
+# License:      GNU GPL v2
+#
+# ==================================================================================================
+#
+# ABOUT THIS SCRIPT:
+#
+# Downloads backups archives from a remote machine, and stores those archives in a local folder.
+# It is prepared to preserve multiple versions of the backup files.  Thus, the local folder where
+# the backups are stored contains date information in its name.
+#
+# The first backups downloaded in a month are saved in a folder with name format
+# "backup-m<YEAR><MONTH>".  The first backups downloaded in a week are saved in a folder with name
+# format "backup-w<YEAR><WEEK>".  The remaining backups are saved in a folder with name format
+# "backup-d<YEAR><MONTH><DAY>" (which means at most one backup is saved per day).
+#
+# It also deletes the old backup files after a configurable period of time.  NOTE: the files to
+# delete are determined according to the modification time provided by the file system.  Thus, those
+# timestamps should not be changed after the creation of the backups.
+#
+# ==================================================================================================
+#
+# Change Log
+#
+# Version 2.0
+#   2017-08-28
+#     * Use input parameters instead of hard coded constants.
+#     * Improve robustness of the script.
+#
+# Version 1.0
+#   2015-08-01
+#     * First version.
+#
+# ==================================================================================================
+
+set -u
+
+# Error exit codes.
+readonly EX_USAGE=64
+readonly EX_NOINPUT=66
+readonly EX_SOFTWARE=70
+readonly EX_CANTCREAT=73
+readonly EX_IOERR=74
+
+# ==================================================================================================
+
+# Script name.
+readonly NAME='get-backups'
+# Script version.
+readonly VERSION='2.0'
+# Script year.
+readonly YEAR='2017'
+
+print_version() {
+    echo "$NAME $VERSION, Copyright (C) $YEAR Rui Carlos Goncalves"
+}
+
+print_help() {
+    print_version
+    echo "Downloads and versions backup archives from remote machines, according to a"
+    echo "customizable retention policy.  This script downloads the files from a remote"
+    echo "host and directory, with the provided SSH credentials, into a local directory,"
+    echo "and it organizes the downloaded files locally in folders whose name identify"
+    echo "the date of the files, for versioning.  The versioning mechanism separates"
+    echo "backups in daily, weekly and monthly, and for each of those the user can"
+    echo "specify the retention policy (i.e. the number of days to preserve each backup)."
+    echo "NOTE: the files to delete are determined according to the modification time"
+    echo "provided by the file system.  Thus, those timestamps should not be changed"
+    echo "after the creation of the backups."
+    echo ""
+    echo "Usage:"
+    echo "    $NAME [options]"
+    echo ""
+    echo "Options:"
+    echo "    -s host        the remote host name or IP address"
+    echo "    -k ssh-pub-key the path to SSH public key file (default: SSH default file)"
+    echo "    -u ssh-user    the SSH user (default: SSH default user)"
+    echo "    -r remote-dir  the remote directory with the backup archives"
+    echo "    -l local-dir   the local directory to store the backup archives"
+    echo "    -d days        the number of days to retain daily backups (default: 7)"
+    echo "    -w days        the number of days to retain weekly backups (default: 30)"
+    echo "    -m days        the number of days to retain monthly backups (default: 365)"
+    echo "    -v             print the script version and exit"
+    echo "    -h             print this help message and exit"
+    echo ""
+    echo "Return values:"
+    echo "    The script returns 0 if no error occurred.  In case of error it returns an"
+    echo "    error exit code based on sysexits.h."
+    echo ""
+    echo "$NAME comes with ABSOLUTELY NO WARRANTY.  This is free software, and"
+    echo "you are welcome to redistribute it under certain conditions.  See the GNU"
+    echo "General Public Licence for details."
+}
+
+# ==================================================================================================
+
+SSHKEYFILE=''
+HOST=''
+REMOTEUSER=''
+REMOTEDIR=''
+LOCALDIR=''
+DDAYS=7
+WDAYS=30
+MDAYS=365
+while getopts 'k:s:u:r:l:d:w:m:vh' FLAG; do
+    case "$FLAG" in
+        k)
+            SSHKEYFILE="$OPTARG"
+            ;;
+        s)
+            HOST="$OPTARG"
+            ;;
+        u)
+            REMOTEUSER="$OPTARG"
+            ;;
+        r)
+            REMOTEDIR="$OPTARG"
+            ;;
+        l)
+            LOCALDIR="$OPTARG"
+            ;;
+        d)
+            DDAYS="$OPTARG"
+            ;;
+        w)
+            WDAYS="$OPTARG"
+            ;;
+        m)
+            MDAYS="$OPTARG"
+            ;;
+        v)
+            print_version
+            exit 0
+            ;;
+        h)
+            print_help
+            exit 0
+            ;;
+        \?)
+            echo ""
+            print_help
+            exit "$EX_USAGE"
+            ;;
+    esac
+done
+readonly SSHKEYFILE
+readonly HOST
+readonly REMOTEUSER
+readonly REMOTEDIR
+readonly LOCALDIR
+readonly DDAYS
+readonly WDAYS
+readonly MDAYS
+
+
+shift "$((OPTIND-1))"
+if [[ -z "$SSHKEYFILE" ]] && [[ -f "$SSHKEYFILE" ]]; then
+    echo "$NAME: '$SSHKEYFILE' does not exist" >&2
+    exit "$EX_USAGE"
+fi
+if [[ -z "$HOST" ]]; then
+    echo "$NAME: missing required parameter -s (remote host name or IP)" >&2
+    exit "$EX_USAGE"
+fi
+if [[ -z "$REMOTEDIR" ]]; then
+    echo "$NAME: missing parameter -r (remote directory)" >&2
+    exit "$EX_USAGE"
+fi
+if [[ -z "$LOCALDIR" ]]; then
+    echo "$NAME: missing parameter -l (local base directory)" >&2
+    exit "$EX_USAGE"
+fi
+if [[ ! -d "$LOCALDIR" ]]; then
+    echo "$NAME: '$LOCALDIR' is not a valid local directory" >&2
+    exit "$EX_NOINPUT"
+fi
+
+
+readonly DNAME="$LOCALDIR/backup-d$(date +'%Y%m%d')"
+readonly WNAME="$LOCALDIR/backup-w$(date +'%Y%U')"
+readonly MNAME="$LOCALDIR/backup-m$(date +'%Y%m')"
+
+
+# Select backup periodicity.
+if [[ ! -d "$MNAME" ]]; then
+    DST="$MNAME"
+elif [[ ! -d "$WNAME" ]]; then
+    DST="$WNAME"
+elif [[ ! -d "$DNAME" ]]; then
+    DST="$DNAME"
+else
+    echo "$NAME: daily backup found; delete it first to create a new daily backup" >&2
+    exit "$EX_USAGE"
+fi
+
+
+mkdir "$DST" >/dev/null 2>&1
+if [[ "$?" -ne 0 ]]; then
+    echo "$NAME: error creating archives" >&2
+    exit "$EX_IOERR"
+fi
+
+
+if [[ -n "$REMOTEUSER" ]]; then
+    readonly REMOTE="$REMOTEUSER@$HOST:$REMOTEDIR/*"
+else
+    readonly REMOTE="$HOST:$REMOTEDIR/*"
+fi
+if [[ -n "$SSHKEYFILE" ]]; then
+    scp -i "$SSHKEYFILE" "$REMOTE" "$DST"
+else
+    scp "$REMOTE" "$DST"
+fi
+if [[ "$?" -ne 0 ]]; then
+    echo "$NAME: unable to download files" >&2
+    rm -r "$DST"
+    exit "$EX_SOFTWARE"
+fi
+
+
+# Exit code associated with the latest error (used as the script exit code).
+# Errors during clean up do not terminate the script, but we still want to report those errors.
+error=0
+
+find "$LOCALDIR" -maxdepth 1 -mtime +"$DDAYS" -name 'backup-d*' -exec rm -r {} \; \
+    || { echo "$NAME: error cleaning up old daily backups" >&2; error="$EX_IOERR"; }
+find "$LOCALDIR" -maxdepth 1 -mtime +"$WDAYS" -name 'backup-w*' -exec rm -r {} \; \
+    || { echo "$NAME: error cleaning up old weekly backups" >&2; error="$EX_IOERR"; }
+find "$LOCALDIR" -maxdepth 1 -mtime +"$MDAYS" -name 'backup-m*' -exec rm -r {} \; \
+    || { echo "$NAME: error cleaning up old monthly backups" >&2; error="$EX_IOERR"; }
+
+exit "$error"
