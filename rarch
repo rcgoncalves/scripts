@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==================================================================================================
 # 
-# rarch 2.1 - create encrypted TAR archives from directories
+# rarch 2.2 - create encrypted TAR archives from directories
 # Copyright (C) 2015-2017 Rui Carlos Gonçalves
 # 
 # This program is free software; you can redistribute it and/or
@@ -21,8 +21,8 @@
 # ==================================================================================================
 #
 # Author:       Rui Carlos Gonçalves <rcgoncalves.pt@gmail.com>
-# Version:      2.1
-# Date:         August 27, 2017
+# Version:      2.2
+# Date:         September 2, 2017
 # License:      GNU GPL v2
 #
 # ==================================================================================================
@@ -34,6 +34,10 @@
 # ==================================================================================================
 #
 # Change Log
+#
+# Version 2.2
+#   2017-09-02
+#     * Improve use of temporary folders.
 #
 # Version 2.1
 #   2017-08-27
@@ -84,7 +88,7 @@ get_absolute_dir_path() {
 # Script name.
 readonly NAME='rarch'
 # Script version.
-readonly VERSION='2.1'
+readonly VERSION='2.2'
 # Script year.
 readonly YEAR='2017'
 
@@ -160,19 +164,19 @@ if ! hash gpg; then
     echo "$NAME: 'gpg' not available (required)" >&2
     exit "$EX_UNAVAILABLE"
 fi
-if ! hash base64; then
-    echo "$NAME: 'base64' not available (required)" >&2
-    exit "$EX_UNAVAILABLE"
-fi
+
 
 # Exit code associated with the latest error (used as the script exit code).
 error=0
 
-
 readonly WORKDIR="$(pwd)"
-# Define a random temporary path in current working directory.
+# Define a temporary path in current working directory.
 # It will be used to place the temporary TAR archives.
-readonly TMP="$WORKDIR/TMP.$(date | gpg --print-md MD5 | tr -s ' ' | base64)"
+readonly TMP="$WORKDIR/$(mktemp -d rarch.tmp.XXXXXXXXXXXX)"
+if [[ "$?" -ne 0 ]]; then
+    echo "$NAME: error creating archives" >&2
+    exit "$EX_IOERR"
+fi
 # Stores the latest used path used for temporary TAR archive (the one we still may have to delete).
 tar=''
 # Setup a trap to cleanup temporary files.
@@ -181,12 +185,6 @@ cleanup() {
     [[ -d "$TMP" ]] && rmdir "$TMP"
 }
 trap cleanup EXIT SIGINT SIGTERM SIGQUIT
-# Assumes the current directory is valid!
-mkdir "$TMP" >/dev/null 2>&1
-if [[ "$?" -ne 0 ]]; then
-    echo "$NAME: error creating archives" >&2
-    exit "$EX_IOERR"
-fi
 
 
 for dir in "$@"; do
