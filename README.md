@@ -30,12 +30,20 @@ This scripts are licensed under GNU General Public License version 2.
 
   The file system where backups are stored must support symbolic links.
   
-* `rbackup.sh`
-
-  Creates daily backups with the files changed in the last 3 days.
-  Creates weekly and monthly full backups.
-  Users can specify the maximum number of days to keep each backup.
-  By default, daily backups are deleted after 7 days, weekly backups after 20 days, and monthly backups after 90 days.
+* `rbackup`
+  
+  Creates and maintains versioned folder backups.
+  
+  The first backups created in a month are saved in a folder with name format `backup-m<YEAR><MONTH>`.
+  The first backups created in a week are saved in a folder with name format `backup-w<YEAR><WEEK>`.
+  The remaining backups are saved in a folder with name format `backup-d<YEAR><MONTH><DAY>`.
+  
+  Monthly and weekly backups are full, whereas daily backups only store the changes of the past five days.
+  Daily backups append files to the daily archive.  If multiple daily backups are made, duplicated files are likely to appear in the backup archive.
+  
+  It also deletes the old backup files after a configurable period of time.
+  **Note:** the files to delete are determined according to the modification time provided by the file system.
+  Thus, those timestamps should not be changed after the creation of the backups.
 
 * `rarch`
   
@@ -57,4 +65,4 @@ This scripts are licensed under GNU General Public License version 2.
 
   For each directory, will be created a archive with the same name, concatenated with extension `.tar.gz`.
   
-  The files with name `.DS_Store` and `.localized` will be excluded (usefull in OS X).
+  The files with name `.DS_Store` and `.localized` will be excluded (useful in OS X).
