@@ -70,6 +70,7 @@ set -u
 
 # Error exit codes.
 readonly EX_USAGE=64
+readonly EX_DATAERR=65
 readonly EX_NOINPUT=66
 readonly EX_IOERR=74
 
@@ -199,7 +200,7 @@ if [[ -z "$TARGET" ]]; then
 fi
 if [[ ! -d "$TARGET" ]]; then
     echo "$NAME: target directory ($TARGET) does not exist" >&2
-    exit "$EX_USAGE"
+    exit "$EX_DATAERR"
 fi
 
 # ==================================================================================================

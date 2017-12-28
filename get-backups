@@ -65,9 +65,8 @@ set -u
 
 # Error exit codes.
 readonly EX_USAGE=64
-readonly EX_NOINPUT=66
+readonly EX_DATAERR=65
 readonly EX_SOFTWARE=70
-readonly EX_CANTCREAT=73
 readonly EX_IOERR=74
 
 # ==================================================================================================
@@ -200,7 +199,7 @@ if [[ -z "$LOCALDIR" ]]; then
 fi
 if [[ ! -d "$LOCALDIR" ]]; then
     echo "$NAME: '$LOCALDIR' is not a valid local directory" >&2
-    exit "$EX_NOINPUT"
+    exit "$EX_DATAERR"
 fi
 
 
