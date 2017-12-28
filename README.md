@@ -57,12 +57,14 @@ This scripts are licensed under GNU General Public License version 2.
   The desired branch and output file names can be specified as arguments.
   If no file name is provided, the name of the current folder, concatenated with the extension `.zip` or `.tar.gz`, will be used.
 
-* `rtar.pl`
+* `rtar`
   
-  Creates tar gz archives from the given directories.
-
+  Creates TAR GZ archives from the given directories.
+  
   It was created to simplify the usage of the `tar` command in some common scenarios.
-
-  For each directory, will be created a archive with the same name, concatenated with extension `.tar.gz`.
   
-  The files with name `.DS_Store` and `.localized` will be excluded (useful in OS X).
+  For each directory, it creates an archive with the same name, concatenated with extension `.tar.gz`.
+  
+  It can optionally append the current date to the archive name (before the extension).
+  
+  The files with name `.DS_Store` and `.localized` are be excluded (useful in MacOS).

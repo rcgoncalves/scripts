@@ -1,0 +1,174 @@
+#!/bin/bash
+# ==================================================================================================
+#
+# rtar 1.0 - create tar archives
+# Copyright (C) 2017 Rui Carlos Gonçalves
+# 
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+#
+# ==================================================================================================
+#
+# Author:       Rui Carlos Gonçalves <rcgoncalves.pt@gmail.com>
+# Version:      1.0
+# Date:         December 28, 2017
+# License:      GNU GPL v2
+#
+# ==================================================================================================
+# 
+# ABOUT THIS SCRIPT:
+#
+# Creates TAR GZ archives from the given directories.
+# It was created to simplify the usage of the `tar` command in some common scenarios.
+# For each directory, it creates an archive with the same name, concatenated with extension
+# ".tar.gz".
+# It can optionally append the current date to the archive name (before the extension).
+# Files with name ".DS_Store" and ".localized" are excluded (useful in MacOS).
+#
+# ==================================================================================================
+#
+# Change Log
+#
+# Version 1.0
+#   2017-12-28
+#     * Initial version.
+#
+# ==================================================================================================
+
+set -u
+
+# Error exit codes.
+readonly EX_USAGE=64
+readonly EX_NOINPUT=66
+readonly EX_SOFTWARE=70
+readonly EX_CANTCREAT=73
+readonly EX_IOERR=74
+
+# Prints to the STDOUT the absolute path of a given directory path.
+# Params:
+# * a directory path (possibly relative to current location).
+# Returns:
+# * EX_USAGE if the number of arguments is wrong.
+# * EX_DATAERR if the path is not a directory.
+# * 0 otherwise.
+get_absolute_dir_path() {
+    [[ "$#" -eq 1 ]] || return "$EX_USAGE"
+    local path="$1"
+    if [[ -d "$path" ]]; then
+        echo "$(cd "$path" && pwd)"
+        return 0
+    else
+        return "$EX_DATAERR"
+    fi
+}
+
+# ==================================================================================================
+
+# Script name.
+readonly NAME='rtar'
+# Script version.
+readonly VERSION='1.0'
+# Script year.
+readonly YEAR='2017'
+
+print_version() {
+    echo "$NAME $VERSION, Copyright (C) $YEAR Rui Carlos Goncalves"
+}
+
+print_help() {
+    print_version
+    echo "Create tar archives from the given directories, excluding system files .localized"
+    echo "and .DS_Store.  The archive name is automatically defined based on the directory"
+    echo "name, echo to which the current date can be optionally appended."
+    echo ""
+    echo "Usage:"
+    echo "    $NAME [options] [directories]"
+    echo ""
+    echo "Options:"
+    echo "    -d  append current date to archive name"
+    echo "    -v  print the script version and exit"
+    echo "    -h  print this help message and exit"
+    echo ""
+    echo "Return values:"
+    echo "    The script returns 0 if no error occurred.  In case of error it returns an"
+    echo "    error exit code based on sysexits.h."
+    echo ""
+    echo "$NAME comes with ABSOLUTELY NO WARRANTY.  This is free software, and"
+    echo "you are welcome to redistribute it under certain conditions.  See the GNU"
+    echo "General Public Licence for details."
+}
+
+# ==================================================================================================
+
+DATE=''
+while getopts 'dvh' FLAG; do
+    case "$FLAG" in
+        d)
+            DATE="-$(date +'%Y%m%d')"
+            ;;
+        v)
+            print_version
+            exit 0
+            ;;
+        h)
+            print_help
+            exit 0
+            ;;
+        \?)
+            echo ""
+            print_help
+            exit "$EX_USAGE"
+            ;;
+    esac
+done
+readonly DATE
+
+shift "$((OPTIND-1))"
+if [[ "$#" -eq 0 ]]; then
+    echo "$NAME: no input directories specified" >&2
+    echo ""
+    print_help
+    exit "$EX_USAGE"
+fi
+
+# Exit code associated with the latest error (used as the script exit code).
+error=0
+
+for dir in "$@"; do
+    if [[ "$dir" == "/" ]]; then
+        echo "$NAME: cannot process the root directory (skipping directory)" >&2
+        error="$EX_DATAERR"
+    elif [ ! -d "$dir" ]; then
+        echo "$NAME: '$dir' is not a valid directory (skipping directory)" >&2
+        error="$EX_DATAERR"
+    else
+        abs="$(get_absolute_dir_path "$dir")"
+        base="$(basename "$abs")"
+        dir="$(dirname "$abs")"
+        tar="$base$DATE.tar.gz"
+
+        if [[ -e "$tar" ]]; then
+            echo "$NAME: output file '$tar' already exists (skipping directory)" >&2
+            error="$EX_CANTCREAT"
+        else
+            tar czf "$tar" --exclude '.DS_Store' --exclude '.localized' -C "$dir" "$base"
+            if [[ "$?" -ne 0 ]]; then
+                echo "$NAME: error creating archive" >&2
+                error="$EX_IOERR"
+            fi
+        fi
+    fi
+done
+
+exit "$error"
