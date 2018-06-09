@@ -153,7 +153,7 @@ for dir in "$@"; do
     if [[ "$dir" == "/" ]]; then
         echo "$NAME: cannot process the root directory (skipping directory)" >&2
         error="$EX_DATAERR"
-    elif [ ! -d "$dir" ]; then
+    elif [[ ! -d "$dir" ]]; then
         echo "$NAME: '$dir' is not a valid directory (skipping directory)" >&2
         error="$EX_DATAERR"
     else

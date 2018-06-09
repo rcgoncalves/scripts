@@ -244,6 +244,8 @@ else
 fi
 
 
+# Exit code associated with the latest error (used as the script exit code).
+# Errors during clean up do not terminate the script, but we still want to report those errors.
 error=0
 
 find "$TARGET" -name 'backup-d*' -mtime "+$DDAYS" -delete \

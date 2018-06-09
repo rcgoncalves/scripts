@@ -177,7 +177,7 @@ if [[ "$?" -ne 0 ]]; then
     echo "$NAME: error creating archives" >&2
     exit "$EX_IOERR"
 fi
-# Stores the latest used path used for temporary TAR archive (the one we still may have to delete).
+# Stores the latest path used for temporary TAR archive (the one we still may have to delete).
 tar=''
 # Setup a trap to cleanup temporary files.
 cleanup() {
@@ -191,7 +191,7 @@ for dir in "$@"; do
     if [[ "$dir" == "/" ]]; then
         echo "$NAME: cannot process the root directory (skipping directory)" >&2
         error="$EX_DATAERR"
-    elif [ ! -d "$dir" ]; then
+    elif [[ ! -d "$dir" ]]; then
         echo "$NAME: '$dir' is not a valid directory (skipping directory)" >&2
         error="$EX_DATAERR"
     else
