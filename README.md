@@ -2,8 +2,6 @@
 
 This repository contains some Perl and Bash scripts to automate some tasks, mainly related with backups, encryption of files, and managing compressed archives.
 
-## License
-This scripts are licensed under GNU General Public License version 2.
 
 ## List of Scripts
 * `get-backups`
@@ -20,7 +18,7 @@ This scripts are licensed under GNU General Public License version 2.
   **Note:** the files to delete are determined according to the modification time provided by the file system.
   Thus, those timestamps should not be changed after the creation of the backups.
   
-* `incbackup.pl`
+* `incbackup`
 
   Creates incremental backups of each given source directory using *rsync*.
   At each backup, only new files are copied.  The backups will be stored in a given target directory.
@@ -49,14 +47,6 @@ This scripts are licensed under GNU General Public License version 2.
   
   Creates encrypted TAR archives from directories, using GnuPG public key encryption.
 
-* `gexport.pl`
-
-  Creates compressed archives from Git repositories.
-  
-  A compressed archive will be created for the Git repository contained in the current directory.
-  The desired branch and output file names can be specified as arguments.
-  If no file name is provided, the name of the current folder, concatenated with the extension `.zip` or `.tar.gz`, will be used.
-
 * `rtar`
   
   Creates TAR GZ archives from the given directories.
@@ -68,3 +58,14 @@ This scripts are licensed under GNU General Public License version 2.
   It can optionally append the current date to the archive name (before the extension).
   
   The files with name `.DS_Store` and `.localized` are be excluded (useful in MacOS).
+
+
+## License
+Copyright (C) 2008-2020 Rui Carlos Gonçalves
+
+These scripts are free software; you can redistribute them and/or modify them under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+These scripts are distributed in the hope that they will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with these scripts; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
