@@ -1,6 +1,7 @@
 # Scripts
 
-This repository contains some Perl and Bash scripts to automate some tasks, mainly related with backups, encryption of files, and managing compressed archives.
+## About
+This project provides some Perl and Bash scripts to automate some tasks, mainly related with backups, encryption of files, and managing compressed archives.
 
 
 ## List of Scripts
@@ -58,6 +59,11 @@ This repository contains some Perl and Bash scripts to automate some tasks, main
   It can optionally append the current date to the archive name (before the extension).
   
   The files with name `.DS_Store` and `.localized` are be excluded (useful in MacOS).
+
+
+## Links
+* [Download](https://github.com/rcgoncalves/scripts/releases/latest)
+* [Issues](https://github.com/rcgoncalves/scripts/issues)
 
 
 ## License
