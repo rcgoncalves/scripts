@@ -1,39 +1,38 @@
 #!/bin/bash
 # ==================================================================================================
 # 
-# rbackup 2.0 - create and maintain versioned folder backups
-# Copyright (C) 2013, 2015, 2017 Rui Carlos Gonçalves
+# rbackup 2.1.1 - create and maintain versioned directory backups
+# Copyright (C) 2013, 2015, 2017, 2020 Rui Carlos Gonçalves
 # 
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation; either version 2
-# of the License, or (at your option) any later version.
-# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # ==================================================================================================
 # 
 # Author:	Rui Carlos Gonçalves <rcgoncalves.pt@gmail.com>
-# Version:	2.0
-# Date:		December 26, 2017
+# Version:	2.1.1
+# Date:		July 23, 2020
 # License:      GNU GPL v2
 #
 # ==================================================================================================
 #
 # ABOUT THIS SCRIPT:
 #
-# Creates and maintains versioned folder backups.
+# Creates and maintains versioned directory backups.
 #
-# The first backups created in a month are saved in a folder with name format
-# "backup-m<YEAR><MONTH>".  The first backups created in a week are saved in a folder with name
-# format "backup-w<YEAR><WEEK>".  The remaining backups are saved in a folder with name format
+# The first backups created in a month are saved in a directory with name format
+# "backup-m<YEAR><MONTH>".  The first backups created in a week are saved in a directory with name
+# format "backup-w<YEAR><WEEK>".  The remaining backups are saved in a directory with name format
 # "backup-d<YEAR><MONTH><DAY>" (which means at most one backup is saved per day).
 #
 # Monthly and weekly backups are full, whereas daily backups only store the changes of the past
@@ -46,6 +45,14 @@
 # ==================================================================================================
 #
 # Change Log
+#
+# Version 2.1.1
+#   2020-07-23
+#     * Minor adjustment to help message.
+#
+# Version 2.1
+#   2017-12-28
+#     * Change error code returned for invalid directory to EX_DATAERR.   
 #
 # Version 2.0
 #   2017-12-26
@@ -79,9 +86,9 @@ readonly EX_IOERR=74
 # Script name.
 readonly NAME='rbackup'
 # Script version.
-readonly VERSION='2.0'
+readonly VERSION='2.1.1'
 # Script year.
-readonly YEAR='2017'
+readonly YEAR='2020'
 
 print_version() {
     echo "$NAME $VERSION, Copyright (C) $YEAR Rui Carlos Goncalves"
@@ -89,10 +96,10 @@ print_version() {
 
 print_help() {
     print_version
-    echo "Creates and maintains versioned folder backups, according to a customizable"
+    echo "Creates and maintains versioned directory backups, according to a customizable"
     echo "retention policy.  This script creates a backup archive from a given source"
     echo "directory, and places it into a given target directory."
-    echo "It organizes the downloaded files locally in folders whose name identify"
+    echo "It organizes the downloaded files locally in directories whose name identify"
     echo "the date of the files, for versioning.  The versioning mechanism separates"
     echo "backups in daily (incremental, containing only files changed in the last five"
     echo "days), weekly and monthly (both full), and for each of those the user can"
@@ -105,8 +112,8 @@ print_help() {
     echo "    $NAME [options]"
     echo ""
     echo "Options:"
-    echo "    -s source      the folder to backup"
-    echo "    -t target      The folder to store the backup archives"
+    echo "    -s source      the directory to backup"
+    echo "    -t target      The directory to store the backup archives"
     echo "    -c compression The compression format for Tar (z or j)"
     echo "    -d days        the number of days to retain daily backups (default: 7)"
     echo "    -w days        the number of days to retain weekly backups (default: 30)"
@@ -125,7 +132,7 @@ print_help() {
 
 # ==================================================================================================
 
-# Folder to backup.
+# Directory to backup.
 SOURCE=''
 # Directory to store the backup.
 TARGET=''

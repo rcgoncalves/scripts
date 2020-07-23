@@ -62,7 +62,7 @@ This project provides some Perl and Bash scripts to automate some tasks, mainly 
 
 
 ## Links
-* [Download](https://github.com/rcgoncalves/scripts/releases/latest)
+* [Downloads](https://github.com/rcgoncalves/scripts/releases/latest)
 * [Issues](https://github.com/rcgoncalves/scripts/issues)
 
 
@@ -74,4 +74,5 @@ These scripts are free software; you can redistribute them and/or modify them un
 These scripts are distributed in the hope that they will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 See the GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License along with these scripts; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+You should have received a copy of the GNU General Public License along with these scripts.
+If not, see <[https://www.gnu.org/licenses/](https://www.gnu.org/licenses/)>.
