@@ -96,7 +96,7 @@ print_version() {
 
 print_help() {
     print_version
-    echo "Create tar archives from the given directories, excluding system files .localized"
+    echo "Creates tar archives from the given directories, excluding system files .localized"
     echo "and .DS_Store.  The archive name is automatically defined based on the directory"
     echo "name, to which the current date can be optionally appended."
     echo ""

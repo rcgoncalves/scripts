@@ -1,8 +1,8 @@
 #!/bin/bash
 # ==================================================================================================
 # 
-# rarch 2.2 - create encrypted TAR archives from directories
-# Copyright (C) 2015-2017 Rui Carlos Gonçalves
+# rarch 2.3 - create encrypted TAR archives from directories
+# Copyright (C) 2015-2020 Rui Carlos Gonçalves
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,8 +20,8 @@
 # ==================================================================================================
 #
 # Author:       Rui Carlos Gonçalves <rcgoncalves.pt@gmail.com>
-# Version:      2.2
-# Date:         September 2, 2017
+# Version:      2.3
+# Date:         November 22, 2020
 # License:      GNU GPL v2
 #
 # ==================================================================================================
@@ -33,6 +33,10 @@
 # ==================================================================================================
 #
 # Change Log
+#
+# Version 2.3
+#   2020-11-22
+#     * Add support for multiple encryption keys.
 #
 # Version 2.2
 #   2017-09-02
@@ -87,9 +91,9 @@ get_absolute_dir_path() {
 # Script name.
 readonly NAME='rarch'
 # Script version.
-readonly VERSION='2.2'
+readonly VERSION='2.3'
 # Script year.
-readonly YEAR='2017'
+readonly YEAR='2020'
 
 print_version() {
     echo "$NAME $VERSION, Copyright (C) $YEAR Rui Carlos Goncalves"
@@ -97,16 +101,16 @@ print_version() {
 
 print_help() {
     print_version
-    echo "Create encrypted TAR archives from directories using GnuPG, with a public key"
-    echo "specified.  An output file is created for each input directory.  Optionally it"
-    echo "can append the current date to the created TAR archive,  so that the archive"
+    echo "Creates encrypted TAR archives from directories using GnuPG, with the public keys"
+    echo "specified. An output file is created for each input directory.  Optionally it"
+    echo "can append the current date to the created TAR archive, so that the archive"
     echo "creation date can be known after decrypting the file."
     echo ""
     echo "Usage:"
     echo "    $NAME [options] [directories]"
     echo ""
     echo "Options:"
-    echo "    -r USER-ID user ID of the GnuPG public key for encrypting the archive"
+    echo "    -r USER-ID user IDs of the GnuPG public keys for encrypting the archive"
     echo "    -d         append current date to TAR archive (format YYYYMMDD)"
     echo "    -v         print the script version and exit"
     echo "    -h         print this help message and exit"
@@ -123,11 +127,11 @@ print_help() {
 # ==================================================================================================
 
 DATE=''
-KEY=''
+KEYS=''
 while getopts 'r:dvh' FLAG; do
     case "$FLAG" in
         r)
-            KEY="$OPTARG"
+            KEYS="$KEYS --recipient $OPTARG"
             ;;
         d)
             DATE="-$(date +'%Y%m%d')"
@@ -206,11 +210,7 @@ for dir in "$@"; do
         else
             tar cf "$tar" -C "$dir" "$base"
             if [[ "$?" -eq 0 ]]; then
-                if [[ -z "$KEY" ]]; then
-                    gpg --quiet --encrypt --out "$gpg" "$tar"
-                else
-                    gpg --quiet --encrypt --recipient "$KEY" --output "$gpg" "$tar"
-                fi
+                gpg --quiet --encrypt $KEYS --output "$gpg" "$tar"
                 if [[ "$?" -ne 0 ]]; then
                     echo "$NAME: error encrypting archive" >&2
                     error="$EX_SOFTWARE"
